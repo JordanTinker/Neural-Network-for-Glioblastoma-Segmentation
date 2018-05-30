@@ -165,12 +165,15 @@ class Model:
 		# loss values and metrics values at successive epochs, as well as validation
 		# loss values and validation metrics values"
 		# Source: https://keras.io/callbacks/#history
+
 		results = self.model.fit(patch_list,
 					  categorical_labels_list,
 					  epochs=self.epochs,
 					  verbose=2,
 					  validation_data=validation_data,
 					  callbacks = [checkpoint])
+
+		print(results)
 
 	def predict_image(self):
 		#function to evaluate an image and predict segmentation
