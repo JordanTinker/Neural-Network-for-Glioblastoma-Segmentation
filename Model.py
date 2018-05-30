@@ -7,6 +7,11 @@ import keras.utils
 import numpy as np
 
 import time
+import json
+
+from skimage import io, color, img_as_float
+
+from sklearn.feature_extraction.image import extract_patches_2d
 
 
 # Useful links:
@@ -188,9 +193,36 @@ class Model:
 		print("------------\n")
 		print("results: " + str(results))
 
-	def predict_image(self):
+	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation
-		# will need another function for displaying segmented output
+		# TODO: will need another function for displaying segmented output
+
+		# Read in the image with skimage, make all values float, reshape ndarray to mimic:
+		#	1. Num of glioma classifications: Types 0, 1, 2, 3, 4
+		#	2. Dimensions of image (240 x 240)
+		nd_array_image = io.imread(image).astype('float').reshape(5,240,240)
+
+		# Create patches
+		patches_list = []
+		for element in nd_array_image[:-1]:
+			if np.amax(element) != 0:
+				element = element / np.amax(element)
+			# Generate patches for a slice that are 33x33
+			patches_for_element = extract_patches_2d(element, (33, 33))
+			patches_list.append(patches_for_element)
+
+		packaged_patches = np.array(zip(
+										np.array(patches_list[0]),
+										np.array(patches_list[1]),
+										np.array(patches_list[2]),
+										np.array(patches_list[3])))
+
+		predictions = self.model.predict_classes(packaged_patches)
+		reshaped_predictions = predictions.reshape(208,208)
+
+		io.imshow(reshaped_predictions)
+
+		return reshaped_predictions
 
 	def save_state_of_model(self):
 		json_filename='current_model.json'
