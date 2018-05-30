@@ -190,6 +190,7 @@ class Model:
 
 	def predict_image(self):
 		#function to evaluate an image and predict segmentation
+		# will need another function for displaying segmented output
 
 	def save_state_of_model(self):
 		json_filename='current_model.json'
