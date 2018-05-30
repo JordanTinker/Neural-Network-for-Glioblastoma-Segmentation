@@ -6,6 +6,8 @@ import keras.utils
 
 import numpy as np
 
+import time
+
 
 # Useful links:
 # https://adeshpande3.github.io/A-Beginner%27s-Guide-To-Understanding-Convolutional-Neural-Networks/
@@ -134,6 +136,7 @@ class Model:
 	def train_model(self, patch_list, labels_list, validation_data):
 		#function to train model on data, will need to take in parameters for data
 
+		data_formatting_start_time = time.time()
 		categorical_labels_list = to_categorical(labels_list, 5)
 		# Create iterator from aggregation of elements from patch_list and labels_list
 		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
@@ -148,6 +151,10 @@ class Model:
 		checkpoint = ModelCheckpoint(filepath="./checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
 									monitor='val_loss',
 									verbose=1)
+		data_formatting_end_time = time.time()
+
+		data_formatting_time = data_formatting_end_time - data_formatting_start_time
+		print("data formatting time: " + str(data_formatting_time))
 
 		# The fit() method has these args that we care about:
 		#	1. numpy array of training data
@@ -166,6 +173,8 @@ class Model:
 		# loss values and validation metrics values"
 		# Source: https://keras.io/callbacks/#history
 
+
+		fit_time_start = time.time()
 		results = self.model.fit(patch_list,
 					  categorical_labels_list,
 					  epochs=self.epochs,
@@ -173,7 +182,11 @@ class Model:
 					  validation_data=validation_data,
 					  callbacks = [checkpoint])
 
-		print(results)
+		fit_time_end = time.time()
+		fit_time = fit_time_end - fit_time_start
+		print("fit time: " + str(fit_time))
+		print("------------\n")
+		print("results: " + str(results))
 
 	def predict_image(self):
 		#function to evaluate an image and predict segmentation
