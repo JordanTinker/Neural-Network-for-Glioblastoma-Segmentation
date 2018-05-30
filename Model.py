@@ -1,15 +1,16 @@
-import keras.models
+from keras.models import *
 from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint, History
-import keras.utils
+from keras.utils import *
 
 import numpy as np
 
 import time
 import json
+import pdb
 
-from skimage import io, color, img_as_float
+from skimage import io
 
 from sklearn.feature_extraction.image import extract_patches_2d
 
@@ -96,7 +97,8 @@ class Model:
 		self.model.add(Conv2D(self.num_filters[0],
 						kernel_size[0],
 						activation=self.activation,
-						input_shape=(self.num_channels, 33, 33)))
+						input_shape=(self.num_channels, 33, 33),
+						data_format="channels_first"))
 		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1)))
 		self.model.add(Dropout(0.5))
 
@@ -135,14 +137,16 @@ class Model:
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 
 		# Using categorical crossentropy
-		self.model.compile(loss='categorical_crossentropy', optimizer='sgd')
+		self.model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
 
 
 	def train_model(self, patch_list, labels_list, validation_data):
 		#function to train model on data, will need to take in parameters for data
 
 		data_formatting_start_time = time.time()
-		categorical_labels_list = to_categorical(labels_list, 5)
+		#categorical_labels_list = to_categorical(labels_list, 5)
+		categorical_labels_list = labels_list
+		#pdb.set_trace()
 		# Create iterator from aggregation of elements from patch_list and labels_list
 		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
 
@@ -150,10 +154,10 @@ class Model:
 		np.random.shuffle(stuff_to_randomize)
 
 		patch_list = np.array([stuff_to_randomize[i][0] for i in range(len(stuff_to_randomize))])
-        categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
+		categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
 
 		# Checkpoint the model after each epoch
-		checkpoint = ModelCheckpoint(filepath="./checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
+		checkpoint = ModelCheckpoint(filepath="checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
 									monitor='val_loss',
 									verbose=1)
 		data_formatting_end_time = time.time()
@@ -191,7 +195,9 @@ class Model:
 		fit_time = fit_time_end - fit_time_start
 		print("fit time: " + str(fit_time))
 		print("------------\n")
-		print("results: " + str(results))
+		print("results: " + str(results.history))
+
+		self.save_state_of_model()
 
 	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation

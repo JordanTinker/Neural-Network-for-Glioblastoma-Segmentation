@@ -52,7 +52,7 @@ class PatientData:
 	def __init__(self, name):
 		self.name = name
 		path = "data/" + name + "/" + name
-		print(path)
+		#print(path)
 		self.flair_data = BrainImage(path + '_flair.nii.gz')
 		self.t1_data = BrainImage(path + '_t1.nii.gz')
 		self.t1ce_data = BrainImage(path + '_t1ce.nii.gz')
