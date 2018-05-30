@@ -149,7 +149,7 @@ class Model:
 									monitor='val_loss',
 									verbose=1)
 
-		# The fit() method has args:
+		# The fit() method has these args that we care about:
 		#	1. numpy array of training data
 		#	2. numpy array of label data
 		#	3. Number of samples per gradient update
@@ -160,7 +160,8 @@ class Model:
 
 		# Note that we are not considering batch_size here
 
-		# results is a History object, "History.history will show record of Training
+		# results is a History object
+		# "History.history will show record of training
 		# loss values and metrics values at successive epochs, as well as validation
 		# loss values and validation metrics values"
 		# Source: https://keras.io/callbacks/#history
