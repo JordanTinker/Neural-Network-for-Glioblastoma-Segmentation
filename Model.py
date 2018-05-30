@@ -1,6 +1,17 @@
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Conv2D, BatchNormalization, MaxPooling2D, Dropout, Flatten
+import keras.models
+from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.optimizers import SGD
+from keras.callbacks import ModelCheckpoint, History
+import keras.utils
+
+import numpy as np
+
+import time
+import json
+
+from skimage import io, color, img_as_float
+
+from sklearn.feature_extraction.image import extract_patches_2d
 
 
 # Useful links:
@@ -36,7 +47,7 @@ from keras.optimizers import SGD
 # Note that further layers will do shape inference
 # We can specify the input_shape to provide info to the first layer
 
-# Compilation: the way you configure the learning process, done via compile() w/ 3 args:
+# Compilation is the way you configure the learning process, done via compile() w/ 3 args:
 #	1. optimizer: rmsprop or adagrad (list of optimizers here: https://keras.io/optimizers/)
 #	2. loss: objective that the model will try to minimize (list here: https://keras.io/losses/)
 #	3. metrics: metrics=['accuracy']
@@ -48,7 +59,7 @@ from keras.optimizers import SGD
 		# Note that Dropout is used for prevention of overfitting
 		# What it does is randomly drop units from the neural network during training
 		# Source: http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
-	# Convolution Layers of interest: Conv1D, Conv2D
+	# Convolution Layers of interest: Conv2D
 
 	# Pooling Layer: Normally, a Pooling layer is inserted between Convolutional Layers
 	#	The idea is to reduce the size of the representation to reduce computation to reduce overfitting
@@ -75,7 +86,6 @@ class Model:
 		# Will be used for specifying the number of filters in each Convolutional Network
 		# We have 4 values in it because we have 4 different types of images: FLAIR, T1, T2, T1 contrasted
 		self.num_filters = num_filters
-
 
 		#Construct the model
 		self.model = Sequential()
@@ -124,11 +134,103 @@ class Model:
 		# Stochastic gradient descent
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 
+		# Using categorical crossentropy
 		self.model.compile(loss='categorical_crossentropy', optimizer='sgd')
 
 
-	def train_model(self):
+	def train_model(self, patch_list, labels_list, validation_data):
 		#function to train model on data, will need to take in parameters for data
 
-	def predict_image(self):
+		data_formatting_start_time = time.time()
+		categorical_labels_list = to_categorical(labels_list, 5)
+		# Create iterator from aggregation of elements from patch_list and labels_list
+		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
+
+		stuff_to_randomize = list(zip(patch_list, categorical_labels_list))
+		np.random.shuffle(stuff_to_randomize)
+
+		patch_list = np.array([stuff_to_randomize[i][0] for i in range(len(stuff_to_randomize))])
+        categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
+
+		# Checkpoint the model after each epoch
+		checkpoint = ModelCheckpoint(filepath="./checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
+									monitor='val_loss',
+									verbose=1)
+		data_formatting_end_time = time.time()
+
+		data_formatting_time = data_formatting_end_time - data_formatting_start_time
+		print("data formatting time: " + str(data_formatting_time))
+
+		# The fit() method has these args that we care about:
+		#	1. numpy array of training data
+		#	2. numpy array of label data
+		#	3. Number of samples per gradient update
+		#	4. Number of epochs to train the model
+		#	5. Verbosity level (0 = silent, 1 = progress bar, 2 = one line per epoch)
+		#	6. Callbacks: List of callback instances
+		#	7. validation_data: Tuple of (x_val, y_val), model will not be trained on this data
+
+		# Note that we are not considering batch_size here
+
+		# results is a History object
+		# "History.history will show record of training
+		# loss values and metrics values at successive epochs, as well as validation
+		# loss values and validation metrics values"
+		# Source: https://keras.io/callbacks/#history
+
+
+		fit_time_start = time.time()
+		results = self.model.fit(patch_list,
+					  categorical_labels_list,
+					  epochs=self.epochs,
+					  verbose=2,
+					  validation_data=validation_data,
+					  callbacks = [checkpoint])
+
+		fit_time_end = time.time()
+		fit_time = fit_time_end - fit_time_start
+		print("fit time: " + str(fit_time))
+		print("------------\n")
+		print("results: " + str(results))
+
+	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation
+		# TODO: will need another function for displaying segmented output
+
+		# Read in the image with skimage, make all values float, reshape ndarray to mimic:
+		#	1. Num of glioma classifications: Types 0, 1, 2, 3, 4
+		#	2. Dimensions of image (240 x 240)
+		nd_array_image = io.imread(image).astype('float').reshape(5,240,240)
+
+		# Create patches
+		patches_list = []
+		for element in nd_array_image[:-1]:
+			if np.amax(element) != 0:
+				element = element / np.amax(element)
+			# Generate patches for a slice that are 33x33
+			patches_for_element = extract_patches_2d(element, (33, 33))
+			patches_list.append(patches_for_element)
+
+		packaged_patches = np.array(zip(
+										np.array(patches_list[0]),
+										np.array(patches_list[1]),
+										np.array(patches_list[2]),
+										np.array(patches_list[3])))
+
+		predictions = self.model.predict_classes(packaged_patches)
+		reshaped_predictions = predictions.reshape(208,208)
+
+		io.imshow(reshaped_predictions)
+
+		return reshaped_predictions
+
+	def save_state_of_model(self):
+		json_filename='current_model.json'
+		weights_filename='current_weights.hdf5'
+		json_string_representation = self.model.to_json()
+
+		# The model and the weights are stored separately
+		# The save_weights() method saves the weights of the models as an HDF5 file
+		self.model.save_weights(weights_filename)
+		with open(json_filename, 'w') as output_file:
+			json.dump(json_string_representation, output_file)
