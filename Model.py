@@ -40,7 +40,7 @@ import numpy as np
 # Note that further layers will do shape inference
 # We can specify the input_shape to provide info to the first layer
 
-# Compilation: the way you configure the learning process, done via compile() w/ 3 args:
+# Compilation is the way you configure the learning process, done via compile() w/ 3 args:
 #	1. optimizer: rmsprop or adagrad (list of optimizers here: https://keras.io/optimizers/)
 #	2. loss: objective that the model will try to minimize (list here: https://keras.io/losses/)
 #	3. metrics: metrics=['accuracy']
@@ -52,7 +52,7 @@ import numpy as np
 		# Note that Dropout is used for prevention of overfitting
 		# What it does is randomly drop units from the neural network during training
 		# Source: http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
-	# Convolution Layers of interest: Conv1D, Conv2D
+	# Convolution Layers of interest: Conv2D
 
 	# Pooling Layer: Normally, a Pooling layer is inserted between Convolutional Layers
 	#	The idea is to reduce the size of the representation to reduce computation to reduce overfitting
