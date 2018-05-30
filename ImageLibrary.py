@@ -49,14 +49,15 @@ class BrainImage:
 
 class PatientData:
 
-	def __init__(self, base_path, name):
+	def __init__(self, name):
 		self.name = name
-		#self.path = base_path + '\\' + name
-		self.flair_data = BrainImage(name + '_flair.nii.gz')
-		self.t1_data = BrainImage(name + '_t1.nii.gz')
-		self.t1ce_data = BrainImage(name + '_t1ce.nii.gz')
-		self.t2_data = BrainImage(name + '_t2.nii.gz')
-		self.groundtruth = BrainImage(name + '_seg.nii.gz')
+		path = "data/" + name + "/" + name
+		print(path)
+		self.flair_data = BrainImage(path + '_flair.nii.gz')
+		self.t1_data = BrainImage(path + '_t1.nii.gz')
+		self.t1ce_data = BrainImage(path + '_t1ce.nii.gz')
+		self.t2_data = BrainImage(path + '_t2.nii.gz')
+		self.groundtruth = BrainImage(path + '_seg.nii.gz')
 
 	def getGroundTruth(self, x, y, z):
 		return self.groundtruth.getValueAt(x, y, z)
@@ -65,7 +66,7 @@ class PatientData:
 		numlist = []
 		for i in range(n):
 			numlist.append((np.random.randint(16, high=224), np.random.randint(16, high=224), np.random.randint(0, high=155)))
-		print("Numlist length is {0}".format(len(numlist)))
+		#print("Numlist length is {0}".format(len(numlist)))
 		patchlist = []
 		for i in range(n):
 			coords = numlist[i]
@@ -73,19 +74,31 @@ class PatientData:
 			t1_patch = self.t1_data.getPatch(coords[0], coords[1], coords[2])
 			t1ce_patch = self.t1ce_data.getPatch(coords[0], coords[1], coords[2])
 			t2_patch = self.t2_data.getPatch(coords[0], coords[1], coords[2])
-			patchlist.append(np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch)))
-		print("Patchlist length is {0} before validation".format(len(patchlist)))
+			stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+			patchlist.append(stacked)
+		#print("Patchlist length is {0} before validation".format(len(patchlist)))
 		valid_patches = []
 		labels = []
 		for i in range(n):
 			if validatePatch(patchlist[i][0]):
-				valid_patches.append(i)
+				valid_patches.append(patchlist[i])
 				coords = numlist[i]
 				labels.append(self.groundtruth.getValueAt(coords[0], coords[1], coords[2]))
-		print("There are {0} valid patches".format(len(valid_patches)))
+		#print("There are {0} valid patches".format(len(valid_patches)))
 		#print("There are {0} labels".format(len(labels)))
 
-		return (valid_patches, labels)
+		result_patches = np.array([]).reshape(0, 4, 33, 33)
+		result_labels = np.array([]).reshape(0, 1)
+		for e in valid_patches:
+			e2 = e.reshape(1, 4, 33, 33)
+			result_patches = np.vstack((result_patches, e2))
+		for e in labels:
+			e2 = np.array([e]).reshape(1, 1)
+			result_labels = np.vstack((result_labels, e2))
+
+		#print("Shape of result_patches: {0} Shape of labels: {1}".format(result_patches.shape, result_labels.shape))
+
+		return (result_patches, result_labels)
 
 def validatePatch(patch):
 	# A patch is valid if less than 20% of the pixels in the image are value 0 (black background)
