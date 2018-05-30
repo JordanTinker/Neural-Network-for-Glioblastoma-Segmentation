@@ -1,6 +1,10 @@
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Conv2D, BatchNormalization, MaxPooling2D, Dropout, Flatten
+import keras.models
+from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten
 from keras.optimizers import SGD
+from keras.callbacks import ModelCheckpoint, History
+import keras.utils
+
+import numpy as np
 
 
 # Useful links:
@@ -76,7 +80,6 @@ class Model:
 		# We have 4 values in it because we have 4 different types of images: FLAIR, T1, T2, T1 contrasted
 		self.num_filters = num_filters
 
-
 		#Construct the model
 		self.model = Sequential()
 
@@ -124,11 +127,60 @@ class Model:
 		# Stochastic gradient descent
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 
+		# Using categorical crossentropy
 		self.model.compile(loss='categorical_crossentropy', optimizer='sgd')
 
 
-	def train_model(self):
+	def train_model(self, patch_list, labels_list, validation_data):
 		#function to train model on data, will need to take in parameters for data
+
+		categorical_labels_list = to_categorical(labels_list, 5)
+		# Create iterator from aggregation of elements from patch_list and labels_list
+		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
+
+		stuff_to_randomize = list(zip(patch_list, categorical_labels_list))
+		np.random.shuffle(stuff_to_randomize)
+
+		patch_list = np.array([stuff_to_randomize[i][0] for i in range(len(stuff_to_randomize))])
+        categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
+
+		# Checkpoint the model after each epoch
+		checkpoint = ModelCheckpoint(filepath="./checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
+									monitor='val_loss',
+									verbose=1)
+
+		# The fit() method has args:
+		#	1. numpy array of training data
+		#	2. numpy array of label data
+		#	3. Number of samples per gradient update
+		#	4. Number of epochs to train the model
+		#	5. Verbosity level (0 = silent, 1 = progress bar, 2 = one line per epoch)
+		#	6. Callbacks: List of callback instances
+		#	7. validation_data: Tuple of (x_val, y_val), model will not be trained on this data
+
+		# Note that we are not considering batch_size here
+
+		# results is a History object, "History.history will show record of Training
+		# loss values and metrics values at successive epochs, as well as validation
+		# loss values and validation metrics values"
+		# Source: https://keras.io/callbacks/#history
+		results = self.model.fit(patch_list,
+					  categorical_labels_list,
+					  epochs=self.epochs,
+					  verbose=2,
+					  validation_data=validation_data,
+					  callbacks = [checkpoint])
 
 	def predict_image(self):
 		#function to evaluate an image and predict segmentation
+
+	def save_state_of_model(self):
+		json_filename='current_model.json'
+		weights_filename='current_weights.hdf5'
+		json_string_representation = self.model.to_json()
+
+		# The model and the weights are stored separately
+		# The save_weights() method saves the weights of the models as an HDF5 file
+		self.model.save_weights(weights_filename)
+		with open(json_filename, 'w') as output_file:
+			json.dump(json_string_representation, output_file)
