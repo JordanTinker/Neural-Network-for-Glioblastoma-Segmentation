@@ -24,19 +24,85 @@ class BrainImage:
 		print("Shape:\n{0}".format(str(data.shape)))
 		print("Array:\n{0}".format(data[:, :, 115]))
 
-	def getPNGFromSlice(self, numSlice):
-		s = self.data[:, :, numSlice]
-		im = Image.fromarray(s)
-		#im.save("sample.png")
+	def getPNGFromSlice(self, numSlice, outfile):
+		s = self.data[:, :, numSlice].T
+		for x in np.nditer(s, op_flags=['readwrite']):
+			x[...] = np.uint8(np.float64(x/1000)*255)
+		im = Image.fromarray(s.astype(np.uint8), mode='L')
+		im.save(outfile)
+
+	#return a Numpy array containing a 33x33 patch centered around the x,y coordinate in the z plane
+	def getPatch(self, x, y, z):
+		return self.data[(x-16):(x+17), (y-16):(y+17), z]
+
+	#save a patch as a PNG
+	def getPNGFromPatch(self, x, y, z, outfile):
+		patch = self.getPatch(x, y, z)
+		for x in np.nditer(patch, op_flags=['readwrite']):
+			x[...] = np.uint8(np.float64(x/1000)*255)
+		im = Image.fromarray(patch.astype(np.uint8), mode='L')
+		im.save(outfile)
+
+	def getValueAt(self, x, y, z):
+		return self.data[x, y, z]
 
 
-def floatArrayToL(src):
-	max = np.amax(src)
-	print (str(max))
-	dst = np.ndarray(src.shape, dtype=np.uint8)
+class PatientData:
 
-	return dst
+	def __init__(self, base_path, name):
+		self.name = name
+		#self.path = base_path + '\\' + name
+		self.flair_data = BrainImage(name + '_flair.nii.gz')
+		self.t1_data = BrainImage(name + '_t1.nii.gz')
+		self.t1ce_data = BrainImage(name + '_t1ce.nii.gz')
+		self.t2_data = BrainImage(name + '_t2.nii.gz')
+		self.groundtruth = BrainImage(name + '_seg.nii.gz')
+
+	def getGroundTruth(self, x, y, z):
+		return self.groundtruth.getValueAt(x, y, z)
+
+	def getNPatches(self, n):
+		numlist = []
+		for i in range(n):
+			numlist.append((np.random.randint(16, high=224), np.random.randint(16, high=224), np.random.randint(0, high=155)))
+		print("Numlist length is {0}".format(len(numlist)))
+		patchlist = []
+		for i in range(n):
+			coords = numlist[i]
+			flair_patch = self.flair_data.getPatch(coords[0], coords[1], coords[2])
+			t1_patch = self.t1_data.getPatch(coords[0], coords[1], coords[2])
+			t1ce_patch = self.t1ce_data.getPatch(coords[0], coords[1], coords[2])
+			t2_patch = self.t2_data.getPatch(coords[0], coords[1], coords[2])
+			patchlist.append(np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch)))
+		print("Patchlist length is {0} before validation".format(len(patchlist)))
+		valid_patches = []
+		labels = []
+		for i in range(n):
+			if validatePatch(patchlist[i][0]):
+				valid_patches.append(i)
+				coords = numlist[i]
+				labels.append(self.groundtruth.getValueAt(coords[0], coords[1], coords[2]))
+		print("There are {0} valid patches".format(len(valid_patches)))
+		#print("There are {0} labels".format(len(labels)))
+
+		return (valid_patches, labels)
+
+def validatePatch(patch):
+	# A patch is valid if less than 20% of the pixels in the image are value 0 (black background)
+	totalZeros = 0
+	for x in np.nditer(patch):
+		if x == 0:
+			totalZeros += 1
+	if (totalZeros > 217):
+		return False
+	else:
+		return True
+
 
 if __name__ == '__main__':
-	bi = BrainImage('sample.nii')
-	bi.getPNGFromSlice(115)
+	#bi = BrainImage('sample.nii.gz')
+	#bi.getPNGFromPatch(78, 64, 106, "samplepatch.png")
+	p = PatientData("as", "Brats18_2013_2_1")
+	result = p.getNPatches(2000)
+	#p.flair_data.getPNGFromSlice(106, "sample1.png")
+	#print(str(p.getNPatches(50)))
