@@ -111,11 +111,22 @@ def validatePatch(patch):
 	else:
 		return True
 
+#takes the data component of a BrainImage and a 240x240x155 segmentation ndarray and returns a 240x240x155 ndarray of the original data overwritten by segmentation highlighting
+def getHighlightedPNG(base_image, segmentation, numSlice):
+	base_slice = base_image[:, :, numSlice].T
+	for x in np.nditer(base_slice, op_flags=['readwrite']):
+		x[...] = np.uint8(np.float64(x/1000)*255)
+	im = Image.fromarray(base_slice.astype(np.uint8), mode='L')
+	im = im.convert(mode="RGB")
+	return im
+
+
+
 
 if __name__ == '__main__':
-	#bi = BrainImage('sample.nii.gz')
-	#bi.getPNGFromPatch(78, 64, 106, "samplepatch.png")
-	p = PatientData("as", "Brats18_2013_2_1")
-	result = p.getNPatches(2000)
-	#p.flair_data.getPNGFromSlice(106, "sample1.png")
-	#print(str(p.getNPatches(50)))
+	p = PatientData("Brats18_2013_2_1")
+	print("brain shape {0}".format(p.groundtruth.data.shape))
+	result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data, 106)
+	data = np.array(result.getdata())
+	data.reshape(240, 240, 3)
+	print(str(data.shape))
