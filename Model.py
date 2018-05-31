@@ -244,11 +244,15 @@ class Model:
 		# The load_model() function is from keras
 		# It will load the model created by save() and will re-compile it
 		# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
-		self.model.load_model(filepath)
+		model = load_model(filepath)
+		return model
 
-	def load_architecture_and_weights(self, json_file, weights_file):
-		self.model = model_from_json(json_filename)
-		self.model.load_weights(weights_file)
+	def load_architecture_and_weights(self, json_filename, weights_file):
+		with open(json_filename, 'r') as json_file:
+			model = model_from_json(json_file.read())
+
+		model.load_weights(weights_file)
+		return model
 
 	def save_architecture_and_weights(self):
 		json_filename='current_model.json'
