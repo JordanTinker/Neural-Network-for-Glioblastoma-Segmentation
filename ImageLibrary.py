@@ -144,5 +144,5 @@ def getHighlightedPNG(base_image, segmentation, numSlice):
 if __name__ == '__main__':
 	p = PatientData("Brats18_CBICA_ABO_1")
 	print("brain shape {0}".format(p.groundtruth.data.shape))
-	result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data, 76)
-	result.save("sampleseg.png")
+	#result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data, 76)
+	#result.save("sampleseg.png")

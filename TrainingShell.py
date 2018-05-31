@@ -48,10 +48,9 @@ if __name__ == '__main__':
 	#predict
 	#pdb.set_trace()
 	network = NeuralNetwork()
-	pdb.set_trace()
 	network.model.load_weights("current_weights.hdf5")
 	print("Loaded weights")
 	segmentation = network.predict_image("data/Brats18_TCIA04_343_1/Brats18_TCIA04_343_1_flair.nii.gz")
 	p = PatientData("Brats18_TCIA04_343_1")
-	seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
-	seg_img.save("sample_result.png")
+	#seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
+	#seg_img.save("sample_result.png")
