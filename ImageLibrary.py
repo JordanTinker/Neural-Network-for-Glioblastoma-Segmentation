@@ -118,10 +118,24 @@ def getHighlightedPNG(base_image, segmentation, numSlice):
 		x[...] = np.uint8(np.float64(x/1000)*255)
 	im = Image.fromarray(base_slice.astype(np.uint8), mode='L')
 	im = im.convert(mode="RGB")
-	seg_slice = segmentation[:, :, numSlice].T
+	seg_slice = segmentation[:, :, numSlice]
 	for x in range(240):
 		for y in range(240):
-			if seg_slice[x][y]
+			current_value = seg_slice[x][y]
+			new_pixel = (0, 0, 0)
+			if current_value == 0:
+				pass
+			elif current_value == 1:	#Non-enhancing tumor core
+				new_pixel = (237, 26, 18) #Red
+				im.putpixel((x,y), new_pixel)
+			elif current_value == 2:	#peritumoral edema
+				new_pixel = (18, 237, 33) #green
+				im.putpixel((x,y), new_pixel)
+			elif current_value == 3:
+				print("Found segmented label 3 at ({0}, {1})".format(x, y))
+			elif current_value == 4:	#GD-enhancing tumor
+				new_pixel = (18, 55, 237) #blue
+				im.putpixel((x,y), new_pixel)
 	return im
 
 
@@ -131,6 +145,4 @@ if __name__ == '__main__':
 	p = PatientData("Brats18_2013_2_1")
 	print("brain shape {0}".format(p.groundtruth.data.shape))
 	result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data, 106)
-	data = np.array(result.getdata())
-	data.reshape(240, 240, 3)
-	print(str(data.shape))
+	result.save("sampleseg.png")

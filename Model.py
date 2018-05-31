@@ -206,7 +206,7 @@ class Model:
 		# Read in the image with skimage, make all values float, reshape ndarray to mimic:
 		#	1. Num of glioma classifications: Types 0, 1, 2, 3, 4
 		#	2. Dimensions of image (240 x 240)
-		nd_array_image = io.imread(image).astype('float').reshape(5,240,240)
+		nd_array_image = io.imread(image).astype('int').reshape(5,240,240)
 
 		# Create patches
 		patches_list = []
