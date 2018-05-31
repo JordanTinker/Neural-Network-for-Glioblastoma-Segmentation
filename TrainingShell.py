@@ -1,7 +1,9 @@
 import sys
 import numpy as np
-import ImageLibrary as I
+from ImageLibrary import *
 from Model import Model
+from keras.models import *
+import pdb
 
 def getFolderList(filename):
 	with open(filename, 'r') as f:
@@ -23,7 +25,7 @@ def generateInput(mode):
 	patches = np.array([]).reshape(0, 4, 33, 33)
 	labels = np.array([]).reshape(0, 1)
 	for f in flist:
-		p = I.PatientData(f)
+		p = PatientData(f)
 		presult = p.getNPatches(1500)
 		patches = np.concatenate((patches, presult[0]))
 		labels = np.concatenate((labels, presult[1]))
@@ -33,12 +35,23 @@ def generateInput(mode):
 	return patches,labels
 
 
-#usage: python TrainingShell.py <base path to data> train
 if __name__ == '__main__':
-	training_data = generateInput('t')
+	#training_data = generateInput('t')
 	#print('Training data shape is {0}, training labels shape is {1}'.format(training_data[0].shape, training_data[1].shape))
-	validation_data = generateInput('v')
+	#validation_data = generateInput('v')
 	#print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
 
-	model = Model()
-	model.train_model(training_data[0], training_data[1], validation_data)
+	#train
+	#model = Model()
+	#model.train_model(training_data[0], training_data[1], validation_data)
+
+	#predict
+	#pdb.set_trace()
+	network = Model()
+	network.model.load_weights("current_weights.hdf5")
+	print("Loaded weights")
+	segmentation = network.predict_image("data/Brats18_TCIA04_343_1/Brats18_TCIA04_343_1_flair.nii.gz")
+	p = PatientData("Brats18_TCIA04_343_1")
+	seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
+	seg_img.save("sample_result.png")
+
