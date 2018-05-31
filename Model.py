@@ -230,7 +230,27 @@ class Model:
 
 		return reshaped_predictions
 
-	def save_state_of_model(self):
+	def save_model(self):
+		# The save() function is from keras
+		# It saves:
+		#	the architecture of the model, thus allowing re-creation of the model
+		#	the weights of the model
+		#	the training configuration (loss, optimizer)
+		#	the state of the optimizer, which allows it to resume training where it left off
+		# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+		self.model.save('current_model.h5')
+
+	def load_existing_model(self, filepath):
+		# The load_model() function is from keras
+		# It will load the model created by save() and will re-compile it
+		# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+		self.model.load_model(filepath)
+
+	def load_architecture_and_weights(self, json_file, weights_file):
+		self.model = model_from_json(json_filename)
+		self.model.load_weights(weights_file)
+
+	def save_architecture_and_weights(self):
 		json_filename='current_model.json'
 		weights_filename='current_weights.hdf5'
 		json_string_representation = self.model.to_json()
