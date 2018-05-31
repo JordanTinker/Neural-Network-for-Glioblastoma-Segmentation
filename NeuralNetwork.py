@@ -67,7 +67,7 @@ from sklearn.feature_extraction.image import extract_patches_2d
 	#	Source: http://cs231n.github.io/convolutional-networks/#layers
 
 
-class Model:
+class NeuralNetwork:
 	def __init__(self,
 				epochs=5,
 				num_channels=4,

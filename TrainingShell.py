@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from ImageLibrary import *
-from Model import Model
+from NeuralNetwork import *
 from keras.models import *
 import pdb
 
@@ -42,16 +42,16 @@ if __name__ == '__main__':
 	#print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
 
 	#train
-	#model = Model()
+	#model = NeuralNetwork()
 	#model.train_model(training_data[0], training_data[1], validation_data)
 
 	#predict
 	#pdb.set_trace()
-	network = Model()
+	network = NeuralNetwork()
+	pdb.set_trace()
 	network.model.load_weights("current_weights.hdf5")
 	print("Loaded weights")
 	segmentation = network.predict_image("data/Brats18_TCIA04_343_1/Brats18_TCIA04_343_1_flair.nii.gz")
 	p = PatientData("Brats18_TCIA04_343_1")
 	seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
 	seg_img.save("sample_result.png")
-
