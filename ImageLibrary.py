@@ -118,6 +118,10 @@ def getHighlightedPNG(base_image, segmentation, numSlice):
 		x[...] = np.uint8(np.float64(x/1000)*255)
 	im = Image.fromarray(base_slice.astype(np.uint8), mode='L')
 	im = im.convert(mode="RGB")
+	seg_slice = segmentation[:, :, numSlice].T
+	for x in range(240):
+		for y in range(240):
+			if seg_slice[x][y]
 	return im
 
 
