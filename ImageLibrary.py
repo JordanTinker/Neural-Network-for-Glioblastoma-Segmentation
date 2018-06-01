@@ -6,6 +6,7 @@ import os
 import numpy as np
 import nibabel as nib
 from PIL import Image
+import time
 
 
 class BrainImage:
@@ -99,6 +100,30 @@ class PatientData:
 		#print("Shape of result_patches: {0} Shape of labels: {1}".format(result_patches.shape, result_labels.shape))
 
 		return (result_patches, result_labels)
+
+	def getPredictData(self, numSlice, rangex, rangey):
+		patchlist = []
+		patches_start = time.time()
+		for x in range(rangex, rangey):
+			for y in range(rangex, rangey):
+				coords = (x, y, numSlice)
+				flair_patch = self.flair_data.getPatch(coords[0], coords[1], coords[2])
+				t1_patch = self.t1_data.getPatch(coords[0], coords[1], coords[2])
+				t1ce_patch = self.t1ce_data.getPatch(coords[0], coords[1], coords[2])
+				t2_patch = self.t2_data.getPatch(coords[0], coords[1], coords[2])
+				stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+				patchlist.append(stacked)
+		patches_time = time.time() - patches_start
+		#print("Made patches in {0}s".format(patches_time))
+		reshape_start = time.time()
+		result_patches = np.array([]).reshape(0, 4, 33, 33)
+		for e in patchlist:
+			e2 = e.reshape(1, 4, 33, 33)
+			result_patches = np.vstack((result_patches, e2))
+		reshape_time = time.time() - reshape_start
+		#print("Reshaped in {0}s".format(reshape_time))
+		return result_patches
+
 
 def validatePatch(patch):
 	# A patch is valid if less than 20% of the pixels in the image are value 0 (black background)

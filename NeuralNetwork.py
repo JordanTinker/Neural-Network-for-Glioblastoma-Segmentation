@@ -206,8 +206,14 @@ class NeuralNetwork:
 		# Read in the image with skimage, make all values float, reshape ndarray to mimic:
 		#	1. Num of glioma classifications: Types 0, 1, 2, 3, 4
 		#	2. Dimensions of image (240 x 240)
-		nd_array_image = io.imread(image, plugin='simpleitk').astype('float')
 
+		time1 = time.time()
+		#nd_array_image = io.imread(image, plugin='simpleitk').astype('float').reshape(5,240,240)
+		nd_array_image = io.imread(image).astype('float').reshape(5,240,240)
+		time_read = time.time() - time1
+		print("Read image in {0}s".format(time_read))
+
+		time2 = time.time()
 		# Create patches
 		patches_list = []
 		for element in nd_array_image[:-1]:
@@ -222,8 +228,13 @@ class NeuralNetwork:
 										np.array(patches_list[1]),
 										np.array(patches_list[2]),
 										np.array(patches_list[3])))
+		time_patch = time.time() - time2
+		print("made patches in {0}s".format(time_patch))
+		time3 = time.time()
 
 		predictions = self.model.predict_classes(packaged_patches)
+		time_predict = time.time() - time3
+		print("Predicted in {0}s".format(time_predict))
 		reshaped_predictions = predictions.reshape(208,208)
 
 		io.imshow(reshaped_predictions)
@@ -264,3 +275,15 @@ class NeuralNetwork:
 		self.model.save_weights(weights_filename)
 		with open(json_filename, 'w') as output_file:
 			json.dump(json_string_representation, output_file)
+
+def getClassFromPredict(prediction):
+	if prediction[0][0] == 1.:
+		return 0
+	elif prediction[0][1] == 1.:
+		return 1
+	elif prediction[0][2] == 1.:
+		return 2
+	elif prediciton[0][3] == 1.:
+		return 3
+	elif prediction[0][4] == 1.:
+		return 4

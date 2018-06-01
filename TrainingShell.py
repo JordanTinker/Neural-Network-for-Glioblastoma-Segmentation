@@ -4,6 +4,7 @@ from ImageLibrary import *
 from NeuralNetwork import *
 from keras.models import *
 import pdb
+import time
 
 def getFolderList(filename):
 	with open(filename, 'r') as f:
@@ -50,7 +51,38 @@ if __name__ == '__main__':
 	network = NeuralNetwork()
 	network.model.load_weights("current_weights.hdf5")
 	print("Loaded weights")
-	segmentation = network.predict_image("data/Brats18_TCIA04_343_1/Brats18_TCIA04_343_1_flair.nii.gz")
+
+	data_start = time.time()
+	print("Starting to get data at {0}".format(data_start))
 	p = PatientData("Brats18_TCIA04_343_1")
+
+	f = open("log.txt", 'w')
+	range_start = 16
+	while range_start < 224:
+		range_end = range_start + 10
+		if range_end > 224:
+			range_end = 224
+		predict_input = p.getPredictData(57, range_start, range_end)
+		prediction = network.model.predict_classes(predict_input)
+		f.write(str(prediction) + '\n')
+		range_start += 10
+
+	#predict_input = p.getPredictData(57)
+	#p.flair_data.getPNGFromSlice(57, "samplepredict.png")
+	data_end = time.time()
+	data_time = data_end - data_start
+	print("Got data in {0}s".format(data_time))
+	
+	predict_start = time.time()
+	print("Starting predict at {0}".format(predict_start))
+	#prediction = network.model.predict(predict_input)
+	#prediction = network.predict_image("samplepredict.png")
+	#parsed_prediction = getClassFromPredict(prediction)
+	#print("Prediction:\n{0}".format(prediction))
+	predict_end = time.time()
+	predict_time = predict_end - predict_start
+	print("Prediction finished in {0}s".format(predict_time))
+
+
 	#seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
 	#seg_img.save("sample_result.png")
