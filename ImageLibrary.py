@@ -101,18 +101,17 @@ class PatientData:
 
 		return (result_patches, result_labels)
 
-	def getPredictData(self, numSlice, rangex, rangey):
+	def getPredictDataLine(self, numSlice, numLine):
 		patchlist = []
 		patches_start = time.time()
-		for x in range(rangex, rangey):
-			for y in range(rangex, rangey):
-				coords = (x, y, numSlice)
-				flair_patch = self.flair_data.getPatch(coords[0], coords[1], coords[2])
-				t1_patch = self.t1_data.getPatch(coords[0], coords[1], coords[2])
-				t1ce_patch = self.t1ce_data.getPatch(coords[0], coords[1], coords[2])
-				t2_patch = self.t2_data.getPatch(coords[0], coords[1], coords[2])
-				stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
-				patchlist.append(stacked)
+		for col in range(16, 224):
+			coords = (numLine, col, numSlice)
+			flair_patch = self.flair_data.getPatch(coords[0], coords[1], coords[2])
+			t1_patch = self.t1_data.getPatch(coords[0], coords[1], coords[2])
+			t1ce_patch = self.t1ce_data.getPatch(coords[0], coords[1], coords[2])
+			t2_patch = self.t2_data.getPatch(coords[0], coords[1], coords[2])
+			stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+			patchlist.append(stacked)
 		patches_time = time.time() - patches_start
 		#print("Made patches in {0}s".format(patches_time))
 		reshape_start = time.time()
@@ -136,17 +135,16 @@ def validatePatch(patch):
 	else:
 		return True
 
-#takes the data component of a BrainImage and a 240x240x155 segmentation ndarray and returns a 240x240x155 ndarray of the original data overwritten by segmentation highlighting
+#takes the data component of a BrainImage and a 240x240x155 segmentation ndarray and returns a 240x240 ndarray of the original data overwritten by segmentation highlighting
 def getHighlightedPNG(base_image, segmentation, numSlice):
 	base_slice = base_image[:, :, numSlice].T
 	for x in np.nditer(base_slice, op_flags=['readwrite']):
 		x[...] = np.uint8(np.float64(x/1000)*255)
 	im = Image.fromarray(base_slice.astype(np.uint8), mode='L')
 	im = im.convert(mode="RGB")
-	seg_slice = segmentation[:, :, numSlice]
 	for x in range(240):
 		for y in range(240):
-			current_value = seg_slice[x][y]
+			current_value = segmentation[x][y]
 			new_pixel = (0, 0, 0)
 			if current_value == 0:
 				pass
@@ -169,5 +167,5 @@ def getHighlightedPNG(base_image, segmentation, numSlice):
 if __name__ == '__main__':
 	p = PatientData("Brats18_CBICA_ABO_1")
 	print("brain shape {0}".format(p.groundtruth.data.shape))
-	#result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data, 76)
-	#result.save("sampleseg.png")
+	result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data[:, :, 76], 76)
+	result.save("sampleseg.png")
