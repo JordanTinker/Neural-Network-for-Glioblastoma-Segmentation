@@ -135,9 +135,9 @@ class NeuralNetwork:
 
 		# Stochastic gradient descent
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
-
+		sgd = SGD(lr=.001, decay=.01, momentum=0.9)
 		# Using categorical crossentropy
-		self.model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+		self.model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
 
 	def train_model(self, patch_list, labels_list, validation_data):
@@ -150,11 +150,11 @@ class NeuralNetwork:
 		# Create iterator from aggregation of elements from patch_list and labels_list
 		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
 
-		stuff_to_randomize = list(zip(patch_list, categorical_labels_list))
-		np.random.shuffle(stuff_to_randomize)
+		#stuff_to_randomize = list(zip(patch_list, categorical_labels_list))
+		#np.random.shuffle(stuff_to_randomize)
 
-		patch_list = np.array([stuff_to_randomize[i][0] for i in range(len(stuff_to_randomize))])
-		categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
+		#patch_list = np.array([stuff_to_randomize[i][0] for i in range(len(stuff_to_randomize))])
+		#categorical_labels_list = np.array([stuff_to_randomize[i][1] for i in range(len(stuff_to_randomize))])
 
 		# Checkpoint the model after each epoch
 		checkpoint = ModelCheckpoint(filepath="checkpoint/bm_{epoch:02d}-{val_loss:.2f}.hdf5",
@@ -197,7 +197,8 @@ class NeuralNetwork:
 		print("------------\n")
 		print("results: " + str(results.history))
 
-		self.save_state_of_model()
+		self.save_model()
+		self.save_architecture_and_weights()
 
 	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation
@@ -251,19 +252,6 @@ class NeuralNetwork:
 		# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
 		self.model.save('current_model.h5')
 
-	def load_existing_model(self, filepath):
-		# The load_model() function is from keras
-		# It will load the model created by save() and will re-compile it
-		# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
-		model = load_model(filepath)
-		return model
-
-	def load_architecture_and_weights(self, json_filename, weights_file):
-		with open(json_filename, 'r') as json_file:
-			model = model_from_json(json_file.read())
-
-		model.load_weights(weights_file)
-		return model
 
 	def save_architecture_and_weights(self):
 		json_filename='current_model.json'
@@ -275,6 +263,20 @@ class NeuralNetwork:
 		self.model.save_weights(weights_filename)
 		with open(json_filename, 'w') as output_file:
 			json.dump(json_string_representation, output_file)
+
+def load_existing_model(filepath):
+	# The load_model() function is from keras
+	# It will load the model created by save() and will re-compile it
+	# Source: https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+	model = load_model(filepath)
+	return model
+
+def load_architecture_and_weights(self, json_filename, weights_file):
+	with open(json_filename, 'r') as json_file:
+		model = model_from_json(json_file.read())
+
+	model.load_weights(weights_file)
+	return model
 
 def getClassFromPredict(prediction):
 	if prediction[0][0] == 1.:

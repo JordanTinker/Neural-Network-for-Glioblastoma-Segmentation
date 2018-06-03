@@ -27,7 +27,7 @@ def generateInput(mode):
 	labels = np.array([]).reshape(0, 1)
 	for f in flist:
 		p = PatientData(f)
-		presult = p.getNPatches(1500)
+		presult = p.getNPatches(150)
 		patches = np.concatenate((patches, presult[0]))
 		labels = np.concatenate((labels, presult[1]))
 
@@ -35,10 +35,10 @@ def generateInput(mode):
 
 	return patches,labels
 
-def runPrediction(name, sliceNum, outfile):
-	network = NeuralNetwork()
-	network.model.load_weights("current_weights.hdf5")
-	print("Loaded weights")
+def runPrediction(name, sliceNum, outfile, network):
+	#network = NeuralNetwork()
+	#network.model.load_weights("current_weights.hdf5")
+	#print("Loaded weights")
 
 	data_start = time.time()
 	print("Starting to get data at {0}".format(data_start))
@@ -71,17 +71,17 @@ def runPrediction(name, sliceNum, outfile):
 
 
 if __name__ == '__main__':
-	#training_data = generateInput('t')
-	#print('Training data shape is {0}, training labels shape is {1}'.format(training_data[0].shape, training_data[1].shape))
-	#validation_data = generateInput('v')
-	#print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
+	training_data = generateInput('t')
+	print('Training data shape is {0}, training labels shape is {1}'.format(training_data[0].shape, training_data[1].shape))
+	validation_data = generateInput('v')
+	print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
 	#train
-	#model = NeuralNetwork()
-	#model.train_model(training_data[0], training_data[1], validation_data)
+	model = NeuralNetwork()
+	model.train_model(training_data[0], training_data[1], validation_data)
 
 	#predict
 	#pdb.set_trace()
-	runPrediction("Brats18_2013_3_1", 61, "prediction_result.png")
+	runPrediction("Brats18_2013_2_1", 106, "prediction_result.png", model)
 	
 
 	#seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
