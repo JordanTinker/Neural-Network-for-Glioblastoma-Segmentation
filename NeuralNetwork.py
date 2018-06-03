@@ -197,7 +197,7 @@ class NeuralNetwork:
 		print("------------\n")
 		print("results: " + str(results.history))
 
-		self.save_state_of_model()
+		self.save_model()
 
 	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation
