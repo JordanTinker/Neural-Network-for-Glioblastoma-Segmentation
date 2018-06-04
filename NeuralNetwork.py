@@ -1,8 +1,9 @@
 from keras.models import *
-from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten
-from keras.optimizers import SGD
+from keras.layers import Dense, Activation, Conv2D, MaxPooling2D, Dropout, Flatten, BatchNormalization
+import keras.optimizers
 from keras.callbacks import ModelCheckpoint, History
 from keras.utils import *
+import keras.regularizers
 
 import numpy as np
 
@@ -69,16 +70,33 @@ from sklearn.feature_extraction.image import extract_patches_2d
 
 class NeuralNetwork:
 	def __init__(self,
-				epochs=5,
-				num_channels=4,
-				kernel_size = [7, 5, 5, 3],
-				activation='relu',
-				num_filters=[64,128,128,128]):
+				type='basic',
+				existing=None):
 		#Constructor for model
 		# TODO: determine what values need to be set here
 		# TODO: What is the deal with num_filters per level?
 		# TODO: What is the deal with kernel size?
 
+		if existing is not None:
+			self.model = load_existing_model(existing)
+		elif type=='basic':
+			self.compile_basic()
+		elif type=='min':
+			self.min_model()
+
+		self.model.summary()
+		#for layer in self.model.layers:
+			#print("Layer Output shape {}".format(layer.output))
+			#print(layer, layer.trainable)
+
+		
+
+	def compile_basic(self,
+				epochs=5,
+				num_channels=4,
+				kernel_size=[7, 5, 5, 3],
+				activation='relu',
+				num_filters=[64,128,128,128]):
 		self.epochs = epochs
 		self.num_channels = num_channels
 		# kernel_size is a list specifying the height and width of the 2D convolution window for each layer
@@ -87,6 +105,7 @@ class NeuralNetwork:
 		# Will be used for specifying the number of filters in each Convolutional Network
 		# We have 4 values in it because we have 4 different types of images: FLAIR, T1, T2, T1 contrasted
 		self.num_filters = num_filters
+		self.num_classes = 4
 
 		#Construct the model
 		self.model = Sequential()
@@ -99,35 +118,38 @@ class NeuralNetwork:
 						activation=self.activation,
 						input_shape=(self.num_channels, 33, 33),
 						data_format="channels_first"))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1)))
-		self.model.add(Dropout(0.5))
+		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
+		#self.model.add(Dropout(0.5))
 
 		# Layer 1
 		self.model.add(Conv2D(self.num_filters[1],
 						kernel_size[1],
-						activation=self.activation))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1)))
-		self.model.add(Dropout(0.5))
+						activation=self.activation,
+						data_format="channels_first"))
+		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
+		#self.model.add(Dropout(0.5))
 
 		# Layer 2
 		self.model.add(Conv2D(self.num_filters[2],
 						kernel_size[2],
-						activation=self.activation))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1)))
-		self.model.add(Dropout(0.5))
+						activation=self.activation,
+						data_format="channels_first"))
+		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
+		#self.model.add(Dropout(0.5))
 
 		# Layer 3
 		self.model.add(Conv2D(self.num_filters[3],
 						kernel_size[3],
-						activation=self.activation))
+						activation=self.activation,
+						data_format="channels_first"))
 
 		# No pooling necessary in this one because it is the last layer
-		self.model.add(Dropout(0.25))
+		#self.model.add(Dropout(0.25))
 
 		# flattening will get the output of the layers, flatten them to create a 1D vector
 		# Source: https://stackoverflow.com/questions/43237124/role-of-flatten-in-keras
 		self.model.add(Flatten())
-		self.model.add(Dense(5))
+		self.model.add(Dense(4))
 
 		# "Often used as the final layer of a neural network classifier"
 		# Source: https://en.wikipedia.org/wiki/Softmax_function#Neural_networks
@@ -135,17 +157,50 @@ class NeuralNetwork:
 
 		# Stochastic gradient descent
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
-		sgd = SGD(lr=.001, decay=.01, momentum=0.9)
+		sgd = keras.optimizers.SGD(lr=.001, decay=.01, momentum=0.9)
+		adam = keras.optimizers.Adam(lr=1e-6)
+
+
 		# Using categorical crossentropy
-		self.model.compile(loss='sparse_categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+		self.model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
+
+	def min_model(self,
+				epochs=10,
+				num_channels=4,
+				kernel_size=[7, 5, 5, 3],
+				activation='relu',
+				num_filters=[64,128,128,128]):
+		self.epochs = epochs
+		self.num_channels = num_channels
+		# kernel_size is a list specifying the height and width of the 2D convolution window for each layer
+		self.kernel_size = kernel_size
+		self.activation = activation
+		# Will be used for specifying the number of filters in each Convolutional Network
+		# We have 4 values in it because we have 4 different types of images: FLAIR, T1, T2, T1 contrasted
+		self.num_filters = num_filters
+		self.num_classes = 4
+		self.model = Sequential()
+		self.model.add(Flatten(input_shape=(self.num_channels, 33, 33)))
+		self.model.add(BatchNormalization())
+		self.model.add(Dense(4, W_regularizer=keras.regularizers.l2(.02)))
+		self.model.add(BatchNormalization())
+		self.model.add(Activation('softmax'))
+
+		self.model.compile(keras.optimizers.Adam(lr=1e-5), 'categorical_crossentropy', metrics=['accuracy'])
 
 
 	def train_model(self, patch_list, labels_list, validation_data):
 		#function to train model on data, will need to take in parameters for data
 
 		data_formatting_start_time = time.time()
-		#categorical_labels_list = to_categorical(labels_list, 5)
-		categorical_labels_list = labels_list
+		print(labels_list.shape)
+		labels_list = to_categorical(labels_list, num_classes=self.num_classes)
+		print(labels_list.shape)
+		vx = validation_data[0]
+		vy = validation_data[1]
+		vy = to_categorical(vy, num_classes=self.num_classes)
+		validation_data = (vx,vy)
+
 		#pdb.set_trace()
 		# Create iterator from aggregation of elements from patch_list and labels_list
 		# Source: https://stackoverflow.com/questions/31683959/the-zip-function-in-python-3
@@ -185,10 +240,11 @@ class NeuralNetwork:
 
 		fit_time_start = time.time()
 		results = self.model.fit(patch_list,
-					  categorical_labels_list,
+					  labels_list,
 					  epochs=self.epochs,
 					  verbose=2,
 					  validation_data=validation_data,
+					  shuffle=True,
 					  callbacks = [checkpoint])
 
 		fit_time_end = time.time()

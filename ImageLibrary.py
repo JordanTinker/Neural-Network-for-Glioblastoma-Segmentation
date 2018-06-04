@@ -63,7 +63,7 @@ class PatientData:
 	def getGroundTruth(self, x, y, z):
 		return self.groundtruth.getValueAt(x, y, z)
 
-	def getNPatches(self, n):
+	def oldGetNPatches(self, n):
 		numlist = []
 		for i in range(n):
 			numlist.append((np.random.randint(16, high=224), np.random.randint(16, high=224), np.random.randint(0, high=155)))
@@ -101,6 +101,90 @@ class PatientData:
 
 		return (result_patches, result_labels)
 
+	def getNPatches(self, num):
+		#find indices of occurances of each class
+		class0 = np.argwhere(self.groundtruth.data == 0)
+		class1 = np.argwhere(self.groundtruth.data == 1)
+		class2 = np.argwhere(self.groundtruth.data == 2)
+		class4 = np.argwhere(self.groundtruth.data == 4)
+
+		#randomly select indices within each class
+		#i0 = np.random.randint(class0.shape[0], size=n/4)
+		n_each = int(num/4)
+		i1 = np.random.randint(class1.shape[0], size=n_each)
+		i2 = np.random.randint(class2.shape[0], size=n_each)
+		i4 = np.random.randint(class4.shape[0], size=n_each)
+
+		patchlist = []
+		labels = []
+		while (len(patchlist) < n_each):
+			n = class0[np.random.randint(class0.shape[0])]
+			x = n[0]
+			y = n[1]
+			z = n[2]
+			if (x < 16 or x >= 224 or y < 16 or y >= 224):
+				continue
+			else:
+				flair_patch = self.flair_data.getPatch(x, y, z)
+				t1_patch = self.t1_data.getPatch(x, y, z)
+				t1ce_patch = self.t1ce_data.getPatch(x, y, z)
+				t2_patch = self.t2_data.getPatch(x, y, z)
+				if(validatePatch(flair_patch)):
+					stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+					patchlist.append(stacked)
+					labels.append(0)
+
+		for i in i1:
+			n = class1[i]
+			x = n[0]
+			y = n[1]
+			z = n[2]
+			flair_patch = self.flair_data.getPatch(x, y, z)
+			t1_patch = self.t1_data.getPatch(x, y, z)
+			t1ce_patch = self.t1ce_data.getPatch(x, y, z)
+			t2_patch = self.t2_data.getPatch(x, y, z)
+			stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+			patchlist.append(stacked)
+			labels.append(1)
+
+		for i in i2:
+			n = class2[i]
+			x = n[0]
+			y = n[1]
+			z = n[2]
+			flair_patch = self.flair_data.getPatch(x, y, z)
+			t1_patch = self.t1_data.getPatch(x, y, z)
+			t1ce_patch = self.t1ce_data.getPatch(x, y, z)
+			t2_patch = self.t2_data.getPatch(x, y, z)
+			stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+			patchlist.append(stacked)
+			labels.append(2)
+
+		for i in i4:
+			n = class4[i]
+			x = n[0]
+			y = n[1]
+			z = n[2]
+			flair_patch = self.flair_data.getPatch(x, y, z)
+			t1_patch = self.t1_data.getPatch(x, y, z)
+			t1ce_patch = self.t1ce_data.getPatch(x, y, z)
+			t2_patch = self.t2_data.getPatch(x, y, z)
+			stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+			patchlist.append(stacked)
+			labels.append(3)
+
+		result_patches = np.array([], dtype='int').reshape(0, 4, 33, 33)
+		result_labels = np.array([], dtype='int').reshape(0, 1)
+		for e in patchlist:
+			e2 = e.reshape(1, 4, 33, 33)
+			result_patches = np.vstack((result_patches, e2))
+		for e in labels:
+			e2 = np.array([e]).reshape(1, 1)
+			result_labels = np.vstack((result_labels, e2))
+
+		return (result_patches, result_labels)
+
+
 	def getPredictDataLine(self, numSlice, numLine):
 		patchlist = []
 		patches_start = time.time()
@@ -115,7 +199,7 @@ class PatientData:
 		patches_time = time.time() - patches_start
 		#print("Made patches in {0}s".format(patches_time))
 		reshape_start = time.time()
-		result_patches = np.array([]).reshape(0, 4, 33, 33)
+		result_patches = np.array([], dtype='int').reshape(0, 4, 33, 33)
 		for e in patchlist:
 			e2 = e.reshape(1, 4, 33, 33)
 			result_patches = np.vstack((result_patches, e2))
@@ -155,17 +239,29 @@ def getHighlightedPNG(base_image, segmentation, numSlice):
 				new_pixel = (18, 237, 33) #green
 				im.putpixel((x,y), new_pixel)
 			elif current_value == 3:
-				print("Found segmented label 3 at ({0}, {1})".format(x, y))
+				new_pixel = (18, 55, 237) #blue
+				im.putpixel((x,y), new_pixel)
 			elif current_value == 4:	#GD-enhancing tumor
 				new_pixel = (18, 55, 237) #blue
 				im.putpixel((x,y), new_pixel)
 	return im
 
+def getPNGFromAnyPatch(patch, outfile):
+		for x in np.nditer(patch, op_flags=['readwrite']):
+			x[...] = np.uint8(np.float64(x/1000)*255)
+		im = Image.fromarray(patch.astype(np.uint8), mode='L')
+		im.save(outfile)
+
 
 
 
 if __name__ == '__main__':
-	p = PatientData("Brats18_CBICA_ABO_1")
-	print("brain shape {0}".format(p.groundtruth.data.shape))
-	result = getHighlightedPNG(p.flair_data.data, p.groundtruth.data[:, :, 76], 76)
-	result.save("sampleseg.png")
+	p = PatientData("Brats18_2013_2_1")
+	start_time = time.time()
+	result = p.getNPatches(280)
+	total_time = time.time() - start_time
+	print("Finished in {0}s".format(total_time))
+	print(result[0].shape)
+	print(result[1].shape)
+	
+	
