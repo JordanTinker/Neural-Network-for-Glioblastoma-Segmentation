@@ -1,6 +1,5 @@
 #This file is for functions dealing with extracting information from .nii files
 #Uses NiBabel http://nipy.org/nibabel/gettingstarted.html
-#Can use matplotlib to save to various other file types, such as .png
 
 import os
 import numpy as np
@@ -63,6 +62,7 @@ class PatientData:
 	def getGroundTruth(self, x, y, z):
 		return self.groundtruth.getValueAt(x, y, z)
 
+	#old method of generating patches for input. Resulted in imbalenced classes
 	def oldGetNPatches(self, n):
 		numlist = []
 		for i in range(n):
@@ -101,6 +101,7 @@ class PatientData:
 
 		return (result_patches, result_labels)
 
+	#Generate patches for input. Generates roughly equal amounts for each class of data
 	def getNPatches(self, num):
 		#find indices of occurances of each class
 		class0 = np.argwhere(self.groundtruth.data == 0)
@@ -133,6 +134,14 @@ class PatientData:
 					stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
 					patchlist.append(stacked)
 					labels.append(0)
+
+		flair_patch = self.flair_data.getPatch(18, 18, z)
+		t1_patch = self.t1_data.getPatch(18, 18, z)
+		t1ce_patch = self.t1ce_data.getPatch(18, 18, z)
+		t2_patch = self.t2_data.getPatch(18, 18, z)
+		stacked = np.stack((flair_patch, t1_patch, t1ce_patch, t2_patch))
+		patchlist.append(stacked)
+		labels.append(0)
 
 		for i in i1:
 			n = class1[i]
@@ -184,7 +193,7 @@ class PatientData:
 
 		return (result_patches, result_labels)
 
-
+	#Get a line of data from the 2D brain image for prediction
 	def getPredictDataLine(self, numSlice, numLine):
 		patchlist = []
 		patches_start = time.time()
@@ -209,12 +218,12 @@ class PatientData:
 
 
 def validatePatch(patch):
-	# A patch is valid if less than 20% of the pixels in the image are value 0 (black background)
+	# A patch is valid if less than 60% of the pixels in the image are value 0 (black background)
 	totalZeros = 0
 	for x in np.nditer(patch):
 		if x == 0:
 			totalZeros += 1
-	if (totalZeros > 217):
+	if (totalZeros > 653):
 		return False
 	else:
 		return True
@@ -254,14 +263,12 @@ def getPNGFromAnyPatch(patch, outfile):
 
 
 
-
+#Generate professional segmentation images for each slice in a sample image
 if __name__ == '__main__':
-	p = PatientData("Brats18_2013_2_1")
-	start_time = time.time()
-	result = p.getNPatches(280)
-	total_time = time.time() - start_time
-	print("Finished in {0}s".format(total_time))
-	print(result[0].shape)
-	print(result[1].shape)
+	name = "Brats18_TCIA02_607_1"
+	p = PatientData(name)
+	for z in range(155):
+		im = getHighlightedPNG(p.flair_data.data, p.groundtruth.data[:, :, z], z)
+		im.save("groundtruth/segmentation_{0}_{1}.png".format(name, z))
 	
 	

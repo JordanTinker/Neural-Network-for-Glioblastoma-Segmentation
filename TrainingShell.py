@@ -6,6 +6,7 @@ from keras.models import *
 import pdb
 import time
 
+#parse the file to get the names of each set of data
 def getFolderList(filename):
 	with open(filename, 'r') as f:
 		flist = f.readlines()
@@ -14,6 +15,7 @@ def getFolderList(filename):
 	return flist
 
 #mode is 't' or 'v'
+#generate an array of patches and labels for the model
 def generateInput(mode, patchesPerFile):
 	flist = []
 	if mode == 't':
@@ -21,7 +23,7 @@ def generateInput(mode, patchesPerFile):
 	elif mode == 'v':
 		flist = getFolderList('validationlist.txt')
 	else:
-		print("Improper error specified to generateInput.")
+		print("Improper mode specified to generateInput.")
 		exit(1)
 	patches = np.array([]).reshape(0, 4, 33, 33)
 	labels = np.array([]).reshape(0, 1)
@@ -36,11 +38,8 @@ def generateInput(mode, patchesPerFile):
 
 	return patches,labels
 
+#Generate a prediction image for a particular 2D brain slice
 def runPrediction(name, sliceNum, outfile, network):
-	#network = NeuralNetwork()
-	#network.model.load_weights("current_weights.hdf5")
-	#print("Loaded weights")
-
 	data_start = time.time()
 	print("Starting to get data at {0}".format(data_start))
 	p = PatientData(name)
@@ -70,6 +69,7 @@ def runPrediction(name, sliceNum, outfile, network):
 	print("Highlighting finished finished in {0}s".format(predict_time))
 	return seg_array
 
+#train the model
 def trainModel(model):
 	training_data = generateInput('t', 320)
 	print('Training data shape is {0}, training labels shape is {1}'.format(training_data[0].shape, training_data[1].shape))
@@ -77,48 +77,19 @@ def trainModel(model):
 	print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
 	model.train_model(training_data[0], training_data[1], validation_data)
 
-def microTrainModel(model):
-	training_data = generateInput('t', 12)
-	print('Training data shape is {0}, training labels shape is {1}'.format(training_data[0].shape, training_data[1].shape))
-	validation_data = generateInput('v', 12)
-	print('Validation data shape is {0}, validation labels shape is {1}'.format(validation_data[0].shape, validation_data[1].shape))
-	model.train_model(training_data[0], training_data[1], validation_data)
-
-def microTest(model):
-	
-	data = generateInput('t', 4)
-	original_data = data
-	
-	patches = data[0]
-	labels = data[1]
-	print(labels.shape)
-	for i in range(10):
-		patches = np.vstack((patches, patches))
-		labels = np.concatenate((labels, labels))
-	print(labels.shape)
-	model.train_model(patches, labels, original_data)
-	
-	for i in range(data[0].shape[0]):
-		prediction = model.model.predict_classes(original_data[0][i].reshape(1, 4, 33, 33))
-		print ("Predicted: {0} Actual: {1}".format(prediction, original_data[1][i]))
-
+#For debugging, save the generated input patches to images
 def saveInputPatches(patches):
 	for i in range(patches[0].shape[0]):
 		for chan in range(4):
 			getPNGFromAnyPatch(patches[0][i][chan], "patches/{0}_chan{1}_L{2}.png".format(i,chan, patches[1][i]))
 
 
-
+#Load the current model and generate all slices of predictions for one brain image
 if __name__ == '__main__':
-	#model = NeuralNetwork(existing="current_model.h5")
-	microModel = NeuralNetwork("basic")
-	#train
-	#trainModel(model)
-	#microTest(model)
-	microTrainModel(microModel)
-	#predict
-	#pdb.set_trace()
-	#runPrediction("Brats18_2013_2_1", 106, "prediction_result.png", model)
+	model = NeuralNetwork(existing="current_model.h5")
+	
+	name = "Brats18_TCIA02_607_1"
+	for z in range(155):
+		runPrediction(name, z, "predictions/prediction_result_{0}_{1}.png".format(name, z), model)
 
-	#seg_img = getHighlightedPNG(p.flair_data.data, segmentation, 65)
-	#seg_img.save("sample_result.png")
+	

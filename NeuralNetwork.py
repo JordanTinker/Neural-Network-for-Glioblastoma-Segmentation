@@ -92,11 +92,11 @@ class NeuralNetwork:
 		
 
 	def compile_basic(self,
-				epochs=5,
+				epochs=8,
 				num_channels=4,
-				kernel_size=[7, 5, 5, 3],
+				kernel_size=[3, 3, 3, 5, 5, 3],
 				activation='relu',
-				num_filters=[64,128,128,128]):
+				num_filters=[32, 32, 32, 64,128,128,128]):
 		self.epochs = epochs
 		self.num_channels = num_channels
 		# kernel_size is a list specifying the height and width of the 2D convolution window for each layer
@@ -110,47 +110,25 @@ class NeuralNetwork:
 		#Construct the model
 		self.model = Sequential()
 
-		# Begin adding layers
 
-		# Layer 0
-		self.model.add(Conv2D(self.num_filters[0],
-						kernel_size[0],
+		self.model.add(Conv2D(32,
+						5,
 						activation=self.activation,
 						input_shape=(self.num_channels, 33, 33),
 						data_format="channels_first"))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
-		#self.model.add(Dropout(0.5))
-
-		# Layer 1
-		self.model.add(Conv2D(self.num_filters[1],
-						kernel_size[1],
+		self.model.add(BatchNormalization(axis=1))
+		self.model.add(MaxPooling2D(pool_size=(2,2), data_format="channels_first"))
+		self.model.add(Dropout(0.5))
+		self.model.add(Conv2D(64,
+						5,
 						activation=self.activation,
+						input_shape=(self.num_channels, 33, 33),
 						data_format="channels_first"))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
-		#self.model.add(Dropout(0.5))
-
-		# Layer 2
-		self.model.add(Conv2D(self.num_filters[2],
-						kernel_size[2],
-						activation=self.activation,
-						data_format="channels_first"))
-		self.model.add(MaxPooling2D(pool_size=(2,2), strides=(1,1), data_format="channels_first"))
-		#self.model.add(Dropout(0.5))
-
-		# Layer 3
-		self.model.add(Conv2D(self.num_filters[3],
-						kernel_size[3],
-						activation=self.activation,
-						data_format="channels_first"))
-
-		# No pooling necessary in this one because it is the last layer
-		#self.model.add(Dropout(0.25))
-
-		# flattening will get the output of the layers, flatten them to create a 1D vector
-		# Source: https://stackoverflow.com/questions/43237124/role-of-flatten-in-keras
+		self.model.add(BatchNormalization(axis=1))
+		self.model.add(MaxPooling2D(pool_size=(2,2), data_format="channels_first"))
 		self.model.add(Flatten())
+		self.model.add(Dense(1000, activation=self.activation))
 		self.model.add(Dense(4))
-
 		# "Often used as the final layer of a neural network classifier"
 		# Source: https://en.wikipedia.org/wiki/Softmax_function#Neural_networks
 		self.model.add(Activation('softmax'))
@@ -158,12 +136,13 @@ class NeuralNetwork:
 		# Stochastic gradient descent
 		# Source: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 		sgd = keras.optimizers.SGD(lr=.001, decay=.01, momentum=0.9)
-		adam = keras.optimizers.Adam(lr=1e-6)
+		adam = keras.optimizers.Adam(lr=1e-5)
 
 
 		# Using categorical crossentropy
 		self.model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
 
+	#A minimal model that has low accuracy but runs very fast.
 	def min_model(self,
 				epochs=10,
 				num_channels=4,
@@ -182,7 +161,7 @@ class NeuralNetwork:
 		self.model = Sequential()
 		self.model.add(Flatten(input_shape=(self.num_channels, 33, 33)))
 		self.model.add(BatchNormalization())
-		self.model.add(Dense(4, W_regularizer=keras.regularizers.l2(.02)))
+		self.model.add(Dense(4, kernel_regularizer=keras.regularizers.l2(.02)))
 		self.model.add(BatchNormalization())
 		self.model.add(Activation('softmax'))
 
@@ -258,7 +237,6 @@ class NeuralNetwork:
 
 	def predict_image(self, image):
 		#function to evaluate an image and predict segmentation
-		# TODO: will need another function for displaying segmented output
 
 		# Read in the image with skimage, make all values float, reshape ndarray to mimic:
 		#	1. Num of glioma classifications: Types 0, 1, 2, 3, 4
@@ -333,15 +311,3 @@ def load_architecture_and_weights(self, json_filename, weights_file):
 
 	model.load_weights(weights_file)
 	return model
-
-def getClassFromPredict(prediction):
-	if prediction[0][0] == 1.:
-		return 0
-	elif prediction[0][1] == 1.:
-		return 1
-	elif prediction[0][2] == 1.:
-		return 2
-	elif prediciton[0][3] == 1.:
-		return 3
-	elif prediction[0][4] == 1.:
-		return 4
