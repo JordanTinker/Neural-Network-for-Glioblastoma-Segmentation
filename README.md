@@ -2,7 +2,7 @@
 Repository for CS 168 project, Computational Methods for Medical Imaging, with Professor Fabien Scalzo
 
 ## Example
-<b>Professional segmentation (top) vs our model's prediction (bottom)</b>
+<b>Professional segmentation (top) vs our model's prediction (bottom)</b><br/>
 <img src="professional_segmentation.gif">
 <img src="prediction.gif">
 
