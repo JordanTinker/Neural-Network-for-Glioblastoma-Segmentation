@@ -3,7 +3,7 @@ Repository for CS 168 project, Computational Methods for Medical Imaging, with P
 
 ## Example
 <b>Professional segmentation (top) vs our model's prediction (bottom)</b>
-<img src="professionalsegmentation.gif">
+<img src="professional_segmentation.gif">
 <img src="prediction.gif">
 
 ## Files
