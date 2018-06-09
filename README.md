@@ -1,6 +1,11 @@
 # CS168Project
 Repository for CS 168 project, Computational Methods for Medical Imaging, with Professor Fabien Scalzo
 
+## Example
+<b>Professional segmentation (top) vs our model's prediction (bottom)</b>
+<img src="professionalsegmentation.gif">
+<img src="prediction.gif">
+
 ## Files
 NeuralNetwork.py - main file for Keras model, includes function for compiling model, training, and evaluating
 
