@@ -1,5 +1,7 @@
-# CS168Project
+# Neural Network for Glioblastoma Segmentation
 Repository for CS 168 project, Computational Methods for Medical Imaging, with Professor Fabien Scalzo
+Jordan Tinker
+Devan Dutta
 
 ## Example
 <b>Professional segmentation (left) vs our model's prediction (right)</b><br/>
